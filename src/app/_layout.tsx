@@ -10,6 +10,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useEffect } from "react";
+import { initializeAuth, useAuthStore } from "@/stores/auth-store";
 import "../../global.css";
 
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -17,6 +18,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 export default function RootLayout() {
+  const isHydrated = useAuthStore((state) => state.isHydrated);
+  const loadCurrentUser = useAuthStore((state) => state.loadCurrentUser);
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -27,6 +30,15 @@ export default function RootLayout() {
     Poppins_600SemiBold,
     Poppins_700Bold,
   });
+
+  useEffect(() => {
+    if (isHydrated) {
+      initializeAuth();
+      void loadCurrentUser().catch((error: unknown) => {
+        console.error("Failed to restore the waiter session.", error);
+      });
+    }
+  }, [isHydrated, loadCurrentUser]);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
