@@ -55,7 +55,14 @@ const OrderSummaryScreen = () => {
       const order = await createOrder(createInput);
       await transitionOrder(order.id, "confirmed");
       clearDraftOrder();
-      router.replace({ pathname: "/(screens)/orderdetails/[id]", params: { id: order.id } });
+      router.replace({
+        pathname: "/(screens)/orderdetails/[id]",
+        params: {
+          id: order.id,
+          tableId: draft.tableId,
+          ...(draft.tableLabel ? { tableLabel: draft.tableLabel } : {}),
+        },
+      });
     } catch (requestError) {
       console.error("Failed to place order.", requestError);
     }
@@ -89,6 +96,9 @@ const OrderSummaryScreen = () => {
         contentContainerClassName="gap-3 px-4 pb-40 pt-4"
         data={draft.lines}
         keyExtractor={(line) => line.item.id}
+        initialNumToRender={8}
+        maxToRenderPerBatch={6}
+        removeClippedSubviews
         ListHeaderComponent={
           <View className="mb-1">
             <Text className="font-gothic text-heading-5 text-font-dark dark:text-white">Review your order</Text>
@@ -135,6 +145,7 @@ const OrderSummaryScreen = () => {
             </View>
           </View>
         )}
+        windowSize={7}
       />
       <View
         className="border-t border-monochromatic-9 bg-white px-4 pt-3 dark:border-monochromatic-2 dark:bg-monochromatic-1"

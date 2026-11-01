@@ -4,6 +4,7 @@ import type {
   AuthUser,
   Branch,
   CheckoutResult,
+  Bill,
   CreateOrderInput,
   MenuCategory,
   MenuItem,
@@ -65,8 +66,9 @@ export const orderApi = {
   active: async (branchId: string) => (await api.get<Order[]>(`/orders/branches/${branchId}/active`)).data,
   activeDetails: async (branchId: string) => {
     const orders = await orderApi.active(branchId);
-    return Promise.all(orders.map((order) => orderApi.get(order.id)));
+    return orderApi.details(orders.map((order) => order.id));
   },
+  details: async (orderIds: string[]) => mapWithConcurrency(orderIds, (orderId) => orderApi.get(orderId), 6),
   list: async (branchId: string) => (await api.get<Order[]>(`/orders/branches/${branchId}`)).data,
   get: async (orderId: string) => {
     const response = await api.get<unknown>(`/orders/${orderId}`);
@@ -75,6 +77,21 @@ export const orderApi = {
   transition: async (orderId: string, status: Order["status"]) =>
     (await api.post<Order>(`/orders/${orderId}/transition`, { status })).data,
 };
+
+async function mapWithConcurrency<T, R>(items: T[], mapper: (item: T) => Promise<R>, concurrency: number) {
+  const results: R[] = [];
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await mapper(items[index]);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
+  return results;
+}
 
 function normalizeOrder(response: unknown): OrderDetail {
   const envelope = isRecord(response) ? response : {};
@@ -153,6 +170,8 @@ function isOrder(value: unknown): value is OrderDetail {
 }
 
 export const paymentApi = {
-  checkout: async (orderId: string) => (await api.post<CheckoutResult>(`/orders/${orderId}/checkout`)).data,
+  prepareBill: async (input: { branchId: string; tableId: string }) =>
+    (await api.post<Bill>("/bills/prepare", input)).data,
+  checkoutBill: async (billId: string) => (await api.post<CheckoutResult>(`/payments/bills/${billId}/checkout`)).data,
   forOrder: async (orderId: string) => (await api.get<Payment[]>(`/payments/order/${orderId}`)).data,
 };

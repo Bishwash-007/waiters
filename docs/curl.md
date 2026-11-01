@@ -111,12 +111,12 @@ tenant. Where it is enforced:
 The tenant's subscription decides what its tokens may do. The state is read
 from the tenant's current `tenant_subscriptions` row:
 
-| Subscription         | Effect on tenant routes                                                             |
-| -------------------- | ----------------------------------------------------------------------------------- |
-| `active`, `trialing` | unrestricted                                                                        |
-| no subscription row  | unrestricted — onboarding without a plan is a supported flow                        |
-| `past_due`           | **read-only**: `GET`/`HEAD`/`OPTIONS` are served, every write is refused with `402` |
-| `cancelled`          | **everything is refused** with `402`, reads included                                |
+| Subscription | Effect on tenant routes |
+|---|---|
+| `active`, `trialing` | unrestricted |
+| no subscription row | unrestricted — onboarding without a plan is a supported flow |
+| `past_due` | **read-only**: `GET`/`HEAD`/`OPTIONS` are served, every write is refused with `402` |
+| `cancelled` | **everything is refused** with `402`, reads included |
 
 These paths are exempt, whatever the state:
 
@@ -137,12 +137,12 @@ address**, per minute; exceeding a limit answers `429` with a `Retry-After`
 header and `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset`
 on every response.
 
-| Route                | Default limit | Override                  |
-| -------------------- | ------------- | ------------------------- |
-| `POST /auth/login`   | 20 / minute   | `AUTH_LOGIN_RATE_LIMIT`   |
-| `POST /auth/refresh` | 30 / minute   | `AUTH_REFRESH_RATE_LIMIT` |
-| `POST /onboarding`   | 10 / minute   | `ONBOARDING_RATE_LIMIT`   |
-| every other route    | 300 / minute  | `RATE_LIMIT_DEFAULT`      |
+| Route | Default limit | Override |
+|---|---|---|
+| `POST /auth/login` | 20 / minute | `AUTH_LOGIN_RATE_LIMIT` |
+| `POST /auth/refresh` | 30 / minute | `AUTH_REFRESH_RATE_LIMIT` |
+| `POST /onboarding` | 10 / minute | `ONBOARDING_RATE_LIMIT` |
+| every other route | 300 / minute | `RATE_LIMIT_DEFAULT` |
 
 The login limiter counts **attempts**, not successes: a wrong password fills
 the bucket exactly like a right one.
@@ -159,8 +159,8 @@ Responses carry the standard hardening headers (`X-Content-Type-Options`,
 `Content-Security-Policy`, and the `Cross-Origin-*` family).
 
 Browser origins are restricted by `CORS_ORIGINS`, a comma-separated list of
-exact origins. In production an **unset** value means _no browser origin is
-allowed_ — the API still serves server-to-server callers, and a deploy that
+exact origins. In production an **unset** value means *no browser origin is
+allowed* — the API still serves server-to-server callers, and a deploy that
 forgot to configure this fails closed instead of opening the API to the whole
 internet. Outside production the default is "any origin".
 
@@ -242,12 +242,12 @@ export REFRESH='<refreshToken>'
 
 ## Authentication
 
-| Method | Path            | Auth                            | Roles           |
-| ------ | --------------- | ------------------------------- | --------------- |
-| `POST` | `/auth/login`   | none (tenant required)          | any active user |
-| `POST` | `/auth/refresh` | refresh token (tenant required) | any             |
-| `POST` | `/auth/logout`  | bearer + refresh token          | any             |
-| `GET`  | `/auth/me`      | bearer                          | any             |
+| Method | Path | Auth | Roles |
+|---|---|---|---|
+| `POST` | `/auth/login` | none (tenant required) | any active user |
+| `POST` | `/auth/refresh` | refresh token (tenant required) | any |
+| `POST` | `/auth/logout` | bearer + refresh token | any |
+| `GET` | `/auth/me` | bearer | any |
 
 ### Log in
 
@@ -294,9 +294,9 @@ curl -sS "$BASE_URL/auth/me" \
 
 ## Onboarding
 
-| Method | Path          | Auth                     | Roles |
-| ------ | ------------- | ------------------------ | ----- |
-| `POST` | `/onboarding` | none — public/pre-tenant | none  |
+| Method | Path | Auth | Roles |
+|---|---|---|---|
+| `POST` | `/onboarding` | none — public/pre-tenant | none |
 
 Creates a tenant, first branch, optional default tables, owner account, and — if
 `planId` is supplied — the initial subscription.
@@ -327,18 +327,18 @@ subscription and is unbilled.
 The body is validated before anything is written, so a bad payload is refused
 with `400` and leaves no tenant behind:
 
-| Field                 | Rule                                              |
-| --------------------- | ------------------------------------------------- |
-| `orgName`             | required, 1–120 characters                        |
-| `slug`                | required, 2–50 characters, letters/digits/`-`/`_` |
-| `planId`              | optional, must be an existing plan                |
-| `firstBranch`         | **required**                                      |
-| `firstBranch.name`    | required, 1–120 characters                        |
-| `firstBranch.address` | optional                                          |
-| `defaultTables`       | optional, 0–50                                    |
-| `owner`               | **required**                                      |
-| `owner.email`         | required, must be an email                        |
-| `owner.password`      | **required**, 8–72 characters                     |
+| Field | Rule |
+|---|---|
+| `orgName` | required, 1–120 characters |
+| `slug` | required, 2–50 characters, letters/digits/`-`/`_` |
+| `planId` | optional, must be an existing plan |
+| `firstBranch` | **required** |
+| `firstBranch.name` | required, 1–120 characters |
+| `firstBranch.address` | optional |
+| `defaultTables` | optional, 0–50 |
+| `owner` | **required** |
+| `owner.email` | required, must be an email |
+| `owner.password` | **required**, 8–72 characters |
 
 Response (`201`):
 
@@ -365,14 +365,14 @@ curl -sS -X POST "$BASE_URL/onboarding" \
 
 ## Branches and tables
 
-| Method   | Path                   | Auth   | Roles                                        |
-| -------- | ---------------------- | ------ | -------------------------------------------- |
-| `GET`    | `/branches`            | bearer | every staff role (not `customer`)            |
-| `POST`   | `/branches`            | bearer | `super_admin`, `org_owner`, `branch_manager` |
-| `PATCH`  | `/branches/:id`        | bearer | `super_admin`, `org_owner`, `branch_manager` |
-| `DELETE` | `/branches/:id`        | bearer | `super_admin`, `org_owner`, `branch_manager` |
-| `GET`    | `/branches/:id/tables` | bearer | every staff role (not `customer`)            |
-| `POST`   | `/branches/:id/tables` | bearer | `super_admin`, `org_owner`, `branch_manager` |
+| Method | Path | Auth | Roles |
+|---|---|---|---|
+| `GET` | `/branches` | bearer | every staff role (not `customer`) |
+| `POST` | `/branches` | bearer | `super_admin`, `org_owner`, `branch_manager` |
+| `PATCH` | `/branches/:id` | bearer | `super_admin`, `org_owner`, `branch_manager` |
+| `DELETE` | `/branches/:id` | bearer | `super_admin`, `org_owner`, `branch_manager` |
+| `GET` | `/branches/:id/tables` | bearer | every staff role (not `customer`) |
+| `POST` | `/branches/:id/tables` | bearer | `super_admin`, `org_owner`, `branch_manager` |
 
 `DELETE` deactivates the branch; it does not hard-delete it.
 
@@ -452,18 +452,18 @@ curl -sS -X POST "$BASE_URL/branches/<branchId>/tables" \
 
 ## Menu
 
-| Method  | Path                                  | Auth                   | Roles                                        |
-| ------- | ------------------------------------- | ---------------------- | -------------------------------------------- |
-| `GET`   | `/menu/public/:branchId`              | none (tenant required) | public                                       |
-| `GET`   | `/menu/branches/:branchId`            | bearer                 | all staff roles                              |
-| `GET`   | `/menu/org-wide`                      | bearer                 | `super_admin`, `org_owner`                   |
-| `POST`  | `/menu/categories`                    | bearer                 | `super_admin`, `org_owner`, `branch_manager` |
-| `POST`  | `/menu/branches/:branchId/categories` | bearer                 | same                                         |
-| `POST`  | `/menu/items`                         | bearer                 | same                                         |
-| `POST`  | `/menu/branches/:branchId/items`      | bearer                 | same                                         |
-| `POST`  | `/menu/items/:itemId/modifiers`       | bearer                 | same                                         |
-| `PATCH` | `/menu/items/:itemId`                 | bearer                 | same                                         |
-| `PATCH` | `/menu/items/:itemId/availability`    | bearer                 | same                                         |
+| Method | Path | Auth | Roles |
+|---|---|---|---|
+| `GET` | `/menu/public/:branchId` | none (tenant required) | public |
+| `GET` | `/menu/branches/:branchId` | bearer | all staff roles |
+| `GET` | `/menu/org-wide` | bearer | `super_admin`, `org_owner` |
+| `POST` | `/menu/categories` | bearer | `super_admin`, `org_owner`, `branch_manager` |
+| `POST` | `/menu/branches/:branchId/categories` | bearer | same |
+| `POST` | `/menu/items` | bearer | same |
+| `POST` | `/menu/branches/:branchId/items` | bearer | same |
+| `POST` | `/menu/items/:itemId/modifiers` | bearer | same |
+| `PATCH` | `/menu/items/:itemId` | bearer | same |
+| `PATCH` | `/menu/items/:itemId/availability` | bearer | same |
 
 A category/item created without `branchId` is org-wide; one created under
 `/branches/:branchId` overrides just that branch. Prices are computed by the
@@ -592,13 +592,13 @@ curl -sS -X PATCH "$BASE_URL/menu/items/<itemId>/availability" \
 
 ## Orders and KDS
 
-| Method | Path                                | Auth   | Roles                                                                  |
-| ------ | ----------------------------------- | ------ | ---------------------------------------------------------------------- |
-| `POST` | `/orders`                           | bearer | `super_admin`, `org_owner`, `branch_manager`, `receptionist`, `waiter` |
-| `POST` | `/orders/:id/transition`            | bearer | above + `kitchen_staff`                                                |
-| `GET`  | `/orders/branches/:branchId/active` | bearer | every staff role (not `customer`)                                      |
-| `GET`  | `/orders/branches/:branchId`        | bearer | every staff role (not `customer`)                                      |
-| `GET`  | `/orders/:id`                       | bearer | every staff role (not `customer`)                                      |
+| Method | Path | Auth | Roles |
+|---|---|---|---|
+| `POST` | `/orders` | bearer | `super_admin`, `org_owner`, `branch_manager`, `receptionist`, `waiter` |
+| `POST` | `/orders/:id/transition` | bearer | above + `kitchen_staff` |
+| `GET` | `/orders/branches/:branchId/active` | bearer | every staff role (not `customer`) |
+| `GET` | `/orders/branches/:branchId` | bearer | every staff role (not `customer`) |
+| `GET` | `/orders/:id` | bearer | every staff role (not `customer`) |
 
 Order money is computed server-side from the menu. Do **not** send
 `unitPrice`, `subtotal`, or `totalAmount`.
@@ -705,6 +705,48 @@ curl -sS "$BASE_URL/orders/<orderId>" \
 
 Response includes `items[]` with `name`, `quantity`, `unit_price`, `notes`, `status`, and `modifiers[]` (`id`, `modifier_id`, `name`, `extra_price`). Money values are returned as numbers/strings consistent with existing API behavior.
 
+## Bills (combined checkout)
+
+Combine multiple open orders for the same table into one bill and checkout once.
+
+### Prepare bill
+
+```bash
+curl -sS -X POST "$BASE_URL/bills/prepare" \
+  -H "X-Tenant-Id: $TENANT" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"branchId":"<branchId>","tableId":"<tableId>"}'
+```
+
+Or specify explicit orders:
+
+```bash
+curl -sS -X POST "$BASE_URL/bills/prepare" \
+  -H "X-Tenant-Id: $TENANT" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"branchId":"<branchId>","orderIds":["<orderId1>","<orderId2>"]}'
+```
+
+### Get bill
+
+```bash
+curl -sS "$BASE_URL/bills/<billId>" \
+  -H "X-Tenant-Id: $TENANT" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Checkout bill
+
+```bash
+curl -sS -X POST "$BASE_URL/bills/<billId>/checkout" \
+  -H "X-Tenant-Id: $TENANT" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Same response shape as order checkout (`payment` + `qr`). On webhook success, all orders in the bill move to `paid`. Per-order `POST /orders/:id/checkout` still works.
+
 ### KDS WebSocket (not HTTP)
 
 Namespace: `/kds` (Socket.IO). The access token goes in the handshake, never in
@@ -712,13 +754,13 @@ a query string.
 
 ```js
 const socket = io(`${BASE_URL}/kds`, {
-  auth: { token: accessToken, branchId },
+  auth: { token: accessToken, branchId }
 });
 
-socket.emit("kds:join", { branchId });
-socket.on("kds:joined", (payload) => console.log(payload));
-socket.on("order.status_changed", (event) => console.log(event));
-socket.emit("kds:leave", { branchId });
+socket.emit('kds:join', { branchId });
+socket.on('kds:joined', (payload) => console.log(payload));
+socket.on('order.status_changed', (event) => console.log(event));
+socket.emit('kds:leave', { branchId });
 ```
 
 Allowed roles: `super_admin`, `org_owner`, `branch_manager`, `receptionist`,
@@ -729,17 +771,17 @@ tenant-wide users may join any branch in their tenant.
 
 ## Checkout, payments and webhooks
 
-| Method | Path                         | Auth               | Roles                                                                  |
-| ------ | ---------------------------- | ------------------ | ---------------------------------------------------------------------- |
-| `POST` | `/checkout`                  | bearer             | `branch_manager`, `receptionist`                                       |
-| `POST` | `/orders/:id/checkout`       | bearer             | `super_admin`, `org_owner`, `branch_manager`, `receptionist`, `waiter` |
-| `GET`  | `/payments/order/:orderId`   | bearer             | `super_admin`, `org_owner`, `branch_manager`, `receptionist`, `waiter` |
-| `POST` | `/payments/:id/refund`       | bearer             | `super_admin`, `org_owner`, `branch_manager`                           |
-| `GET`  | `/payments/config`           | bearer             | `super_admin`, `org_owner`                                             |
-| `PUT`  | `/payments/config/:provider` | bearer             | `super_admin`, `org_owner`                                             |
-| `POST` | `/webhooks/stripe`           | provider signature | public                                                                 |
-| `POST` | `/webhooks/esewa`            | provider signature | public                                                                 |
-| `POST` | `/webhooks/razorpay`         | provider signature | public                                                                 |
+| Method | Path | Auth | Roles |
+|---|---|---|---|
+| `POST` | `/checkout` | bearer | `branch_manager`, `receptionist` |
+| `POST` | `/orders/:id/checkout` | bearer | `super_admin`, `org_owner`, `branch_manager`, `receptionist`, `waiter` |
+| `GET` | `/payments/order/:orderId` | bearer | `super_admin`, `org_owner`, `branch_manager`, `receptionist`, `waiter` |
+| `POST` | `/payments/:id/refund` | bearer | `super_admin`, `org_owner`, `branch_manager` |
+| `GET` | `/payments/config` | bearer | `super_admin`, `org_owner` |
+| `PUT` | `/payments/config/:provider` | bearer | `super_admin`, `org_owner` |
+| `POST` | `/webhooks/stripe` | provider signature | public |
+| `POST` | `/webhooks/esewa` | provider signature | public |
+| `POST` | `/webhooks/razorpay` | provider signature | public |
 
 ### Legacy checkout demonstration
 
@@ -889,23 +931,23 @@ All inventory routes require a bearer token.
 Write roles: `super_admin`, `org_owner`, `branch_manager`.
 Read roles: above + `receptionist`, `kitchen_staff`.
 
-| Method   | Path                                     | Roles |
-| -------- | ---------------------------------------- | ----- |
-| `POST`   | `/inventory/suppliers`                   | write |
-| `GET`    | `/inventory/suppliers`                   | read  |
-| `GET`    | `/inventory/suppliers/:id`               | read  |
-| `PATCH`  | `/inventory/suppliers/:id`               | write |
-| `DELETE` | `/inventory/suppliers/:id`               | write |
-| `POST`   | `/inventory/items`                       | write |
-| `GET`    | `/inventory/items?branchId=`             | read  |
-| `GET`    | `/inventory/items/:id`                   | read  |
-| `POST`   | `/inventory/items/:id/stock-in`          | write |
-| `POST`   | `/inventory/items/:id/adjust`            | write |
-| `GET`    | `/inventory/items/:id/movements`         | read  |
-| `PATCH`  | `/inventory/items/:id/reorder-threshold` | write |
-| `POST`   | `/inventory/recipes/ingredients`         | write |
-| `DELETE` | `/inventory/recipes/ingredients/:id`     | write |
-| `GET`    | `/inventory/discrepancies?status=`       | read  |
+| Method | Path | Roles |
+|---|---|---|
+| `POST` | `/inventory/suppliers` | write |
+| `GET` | `/inventory/suppliers` | read |
+| `GET` | `/inventory/suppliers/:id` | read |
+| `PATCH` | `/inventory/suppliers/:id` | write |
+| `DELETE` | `/inventory/suppliers/:id` | write |
+| `POST` | `/inventory/items` | write |
+| `GET` | `/inventory/items?branchId=` | read |
+| `GET` | `/inventory/items/:id` | read |
+| `POST` | `/inventory/items/:id/stock-in` | write |
+| `POST` | `/inventory/items/:id/adjust` | write |
+| `GET` | `/inventory/items/:id/movements` | read |
+| `PATCH` | `/inventory/items/:id/reorder-threshold` | write |
+| `POST` | `/inventory/recipes/ingredients` | write |
+| `DELETE` | `/inventory/recipes/ingredients/:id` | write |
+| `GET` | `/inventory/discrepancies?status=` | read |
 
 Branch managers are confined to their token's branch. Tenant-wide users naming a
 branch must use a real branch in their tenant.
@@ -1081,20 +1123,20 @@ Valid statuses: `pending`, `completed`, `partial`, `failed`.
 
 All routes are under a branch and require a bearer token.
 
-| Method   | Path                                           | Roles                                        |
-| -------- | ---------------------------------------------- | -------------------------------------------- |
-| `POST`   | `/branches/:branchId/shifts`                   | `super_admin`, `org_owner`, `branch_manager` |
-| `GET`    | `/branches/:branchId/shifts`                   | above + `receptionist`                       |
-| `GET`    | `/branches/:branchId/shifts/:id`               | same read                                    |
-| `PATCH`  | `/branches/:branchId/shifts/:id`               | write                                        |
-| `DELETE` | `/branches/:branchId/shifts/:id`               | write                                        |
-| `POST`   | `/branches/:branchId/attendance/clock-in`      | all staff roles                              |
-| `POST`   | `/branches/:branchId/attendance/clock-out`     | all staff roles                              |
-| `GET`    | `/branches/:branchId/roster?week=`             | same read                                    |
-| `GET`    | `/branches/:branchId/payroll?from=&to=`        | `super_admin`, `org_owner`, `branch_manager` |
-| `GET`    | `/branches/:branchId/payroll/export?from=&to=` | same                                         |
-| `PUT`    | `/branches/:branchId/wage-rates/:userId`       | same                                         |
-| `GET`    | `/branches/:branchId/wage-rates/:userId`       | same                                         |
+| Method | Path | Roles |
+|---|---|---|
+| `POST` | `/branches/:branchId/shifts` | `super_admin`, `org_owner`, `branch_manager` |
+| `GET` | `/branches/:branchId/shifts` | above + `receptionist` |
+| `GET` | `/branches/:branchId/shifts/:id` | same read |
+| `PATCH` | `/branches/:branchId/shifts/:id` | write |
+| `DELETE` | `/branches/:branchId/shifts/:id` | write |
+| `POST` | `/branches/:branchId/attendance/clock-in` | all staff roles |
+| `POST` | `/branches/:branchId/attendance/clock-out` | all staff roles |
+| `GET` | `/branches/:branchId/roster?week=` | same read |
+| `GET` | `/branches/:branchId/payroll?from=&to=` | `super_admin`, `org_owner`, `branch_manager` |
+| `GET` | `/branches/:branchId/payroll/export?from=&to=` | same |
+| `PUT` | `/branches/:branchId/wage-rates/:userId` | same |
+| `GET` | `/branches/:branchId/wage-rates/:userId` | same |
 
 ### Create a shift
 
@@ -1222,14 +1264,14 @@ curl -sS "$BASE_URL/branches/<branchId>/wage-rates/<userId>" \
 
 ### Customers
 
-| Method  | Path                            | Roles                                                                  |
-| ------- | ------------------------------- | ---------------------------------------------------------------------- |
-| `POST`  | `/customers`                    | `super_admin`, `org_owner`, `branch_manager`, `receptionist`, `waiter` |
-| `GET`   | `/customers?phone=`             | same                                                                   |
-| `PATCH` | `/customers/:id`                | same                                                                   |
-| `GET`   | `/customers/:id`                | same                                                                   |
-| `GET`   | `/customers/:id/loyalty`        | same                                                                   |
-| `POST`  | `/customers/birthdays/announce` | `super_admin`, `org_owner`                                             |
+| Method | Path | Roles |
+|---|---|---|
+| `POST` | `/customers` | `super_admin`, `org_owner`, `branch_manager`, `receptionist`, `waiter` |
+| `GET` | `/customers?phone=` | same |
+| `PATCH` | `/customers/:id` | same |
+| `GET` | `/customers/:id` | same |
+| `GET` | `/customers/:id/loyalty` | same |
+| `POST` | `/customers/birthdays/announce` | `super_admin`, `org_owner` |
 
 Customer lookups are tenant-wide, not branch-scoped.
 
@@ -1311,14 +1353,14 @@ Response: `{"date":"2026-10-22","published":3}`
 
 ### Promotions
 
-| Method  | Path                       | Roles                                                                  |
-| ------- | -------------------------- | ---------------------------------------------------------------------- |
-| `POST`  | `/promotions`              | `super_admin`, `org_owner`, `branch_manager`                           |
-| `GET`   | `/promotions?activeOnly=`  | `super_admin`, `org_owner`, `branch_manager`, `receptionist`, `waiter` |
-| `POST`  | `/promotions/apply`        | same read set                                                          |
-| `GET`   | `/promotions/:id`          | same read set                                                          |
-| `PATCH` | `/promotions/:id`          | `super_admin`, `org_owner`, `branch_manager`                           |
-| `POST`  | `/promotions/:id/announce` | `super_admin`, `org_owner`                                             |
+| Method | Path | Roles |
+|---|---|---|
+| `POST` | `/promotions` | `super_admin`, `org_owner`, `branch_manager` |
+| `GET` | `/promotions?activeOnly=` | `super_admin`, `org_owner`, `branch_manager`, `receptionist`, `waiter` |
+| `POST` | `/promotions/apply` | same read set |
+| `GET` | `/promotions/:id` | same read set |
+| `PATCH` | `/promotions/:id` | `super_admin`, `org_owner`, `branch_manager` |
+| `POST` | `/promotions/:id/announce` | `super_admin`, `org_owner` |
 
 #### Create a promotion
 
@@ -1410,9 +1452,9 @@ Response: `{"promotionId":"uuid","code":"DASHAIN10","published":1}`
 
 ## Notifications
 
-| Method | Path                                | Roles                                        |
-| ------ | ----------------------------------- | -------------------------------------------- |
-| `GET`  | `/notifications/dead-letter?limit=` | `super_admin`, `org_owner`, `branch_manager` |
+| Method | Path | Roles |
+|---|---|---|
+| `GET` | `/notifications/dead-letter?limit=` | `super_admin`, `org_owner`, `branch_manager` |
 
 Failed notification jobs are visible here. There is deliberately no retry/delete
 endpoint yet.
@@ -1440,11 +1482,11 @@ only). Provider delivery is currently a logging stub.
 
 ## Reporting
 
-| Method | Path                                                | Roles                                        |
-| ------ | --------------------------------------------------- | -------------------------------------------- |
-| `GET`  | `/branches/:branchId/reports/sales`                 | `super_admin`, `org_owner`, `branch_manager` |
-| `GET`  | `/branches/:branchId/reports/inventory-consumption` | same                                         |
-| `GET`  | `/branches/:branchId/reports/staff-performance`     | same                                         |
+| Method | Path | Roles |
+|---|---|---|
+| `GET` | `/branches/:branchId/reports/sales` | `super_admin`, `org_owner`, `branch_manager` |
+| `GET` | `/branches/:branchId/reports/inventory-consumption` | same |
+| `GET` | `/branches/:branchId/reports/staff-performance` | same |
 
 Query parameters:
 
@@ -1469,7 +1511,7 @@ JSON response shape:
   "type": "sales",
   "title": "Sales report",
   "branchId": "uuid",
-  "range": { "from": "2026-10-01", "to": "2026-10-31" },
+  "range": {"from":"2026-10-01","to":"2026-10-31"},
   "summary": {
     "orderCount": 10,
     "itemCount": 22,
@@ -1483,7 +1525,7 @@ JSON response shape:
     {
       "key": "daily",
       "title": "Revenue by day",
-      "columns": [{ "key": "date", "label": "Date" }],
+      "columns": [{"key":"date","label":"Date"}],
       "rows": []
     }
   ],
@@ -1530,12 +1572,12 @@ curl -sS -OJ "$BASE_URL/branches/<branchId>/reports/sales?from=2026-10-01&to=202
 Billing is the **tenant's SaaS subscription**, not guest payment. Every charge is
 delegated to the tenant's configured `PaymentProviderFactory`.
 
-| Method | Path                                | Roles                      |
-| ------ | ----------------------------------- | -------------------------- |
-| `GET`  | `/billing/subscription`             | `super_admin`, `org_owner` |
-| `GET`  | `/billing/plans`                    | same                       |
-| `POST` | `/billing/subscription/actions`     | same                       |
-| `POST` | `/billing/subscription/change-plan` | same                       |
+| Method | Path | Roles |
+|---|---|---|
+| `GET` | `/billing/subscription` | `super_admin`, `org_owner` |
+| `GET` | `/billing/plans` | same |
+| `POST` | `/billing/subscription/actions` | same |
+| `POST` | `/billing/subscription/change-plan` | same |
 
 ### Current subscription
 
@@ -1579,17 +1621,17 @@ curl -sS "$BASE_URL/billing/plans" \
 `POST /billing/subscription/actions` body:
 
 ```json
-{ "action": "upgrade", "planId": "uuid" }
+{"action":"upgrade","planId":"uuid"}
 ```
 
 Allowed actions by status:
 
-| Status      | Actions                                   |
-| ----------- | ----------------------------------------- |
-| `trialing`  | `upgrade`, `downgrade`, `renew`, `cancel` |
-| `active`    | `upgrade`, `downgrade`, `renew`, `cancel` |
-| `past_due`  | `retry_payment`, `cancel`                 |
-| `cancelled` | none — terminal                           |
+| Status | Actions |
+|---|---|
+| `trialing` | `upgrade`, `downgrade`, `renew`, `cancel` |
+| `active` | `upgrade`, `downgrade`, `renew`, `cancel` |
+| `past_due` | `retry_payment`, `cancel` |
+| `cancelled` | none — terminal |
 
 `upgrade`/`downgrade` require `planId`. `renew` and `retry_payment` take no
 `planId`. Illegal actions are rejected before any provider call.
@@ -1661,10 +1703,10 @@ tenant is read-only and a `cancelled` tenant is refused outright, both with
 `/platform/*` skips tenant resolution, but it is **not** anonymous: it is the
 SaaS administrator's surface, and it requires a `super_admin` token.
 
-| Method | Path                         | Auth   | Roles         |
-| ------ | ---------------------------- | ------ | ------------- |
-| `GET`  | `/platform/tenants`          | bearer | `super_admin` |
-| `GET`  | `/platform/reports/overview` | bearer | `super_admin` |
+| Method | Path | Auth | Roles |
+|---|---|---|---|
+| `GET` | `/platform/tenants` | bearer | `super_admin` |
+| `GET` | `/platform/reports/overview` | bearer | `super_admin` |
 
 - no token → `401`
 - a token that is not `super_admin` → `403`
@@ -1698,21 +1740,21 @@ tables). Without that, the report fails safe with no cross-tenant orders.
 
 ### Status codes used
 
-| Code  | Meaning                                                                                                               |
-| ----- | --------------------------------------------------------------------------------------------------------------------- |
-| `200` | Successful read/action                                                                                                |
-| `201` | Created (onboarding, branches, menu, orders)                                                                          |
-| `202` | Legacy `POST /checkout` acknowledgement                                                                               |
-| `204` | Successful delete or recipe write with no body                                                                        |
-| `400` | Invalid input (including body validation), illegal state transition/action, bad report range                          |
-| `401` | Missing/invalid access token                                                                                          |
-| `402` | The tenant's subscription is `past_due` (write refused) or `cancelled` (everything refused)                           |
-| `403` | Role or branch-scope denial; inactive tenant                                                                          |
-| `404` | Missing tenant/resource; unknown route under a tenant                                                                 |
-| `409` | Conflict (e.g. duplicate provider reference/order already paid, downgrade over the plan's limits)                     |
+| Code | Meaning |
+|---|---|
+| `200` | Successful read/action |
+| `201` | Created (onboarding, branches, menu, orders) |
+| `202` | Legacy `POST /checkout` acknowledgement |
+| `204` | Successful delete or recipe write with no body |
+| `400` | Invalid input (including body validation), illegal state transition/action, bad report range |
+| `401` | Missing/invalid access token |
+| `402` | The tenant's subscription is `past_due` (write refused) or `cancelled` (everything refused) |
+| `403` | Role or branch-scope denial; inactive tenant |
+| `404` | Missing tenant/resource; unknown route under a tenant |
+| `409` | Conflict (e.g. duplicate provider reference/order already paid, downgrade over the plan's limits) |
 | `422` | The payload is well-formed but the request cannot be processed (unsupported promotion type, unsupported payment type) |
-| `429` | Rate limit exceeded; see [Rate limiting](#rate-limiting)                                                              |
-| `500` | Unexpected server error                                                                                               |
+| `429` | Rate limit exceeded; see [Rate limiting](#rate-limiting) |
+| `500` | Unexpected server error |
 
 ### Important limitations
 

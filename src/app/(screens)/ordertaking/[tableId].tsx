@@ -4,6 +4,7 @@ import { IconRenderer } from "@/components/icon";
 import { iconMap } from "@/constants/icons";
 import { useAuthStore } from "@/stores/auth-store";
 import { useBranchStore, useMenuStore, useOrderStore } from "@/stores/data-stores";
+import { useLazyList } from "@/hooks/use-lazy-list";
 import type { MenuItem } from "@/types/api";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -70,6 +71,7 @@ const OrderTakingScreen = () => {
       return matchesCategory && matchesSearch && item.isAvailable !== false;
     });
   }, [categoryId, menuItems, search]);
+  const { visibleItems: lazyVisibleItems, hasMore, loadMore } = useLazyList(visibleItems);
 
   const cartCount = cart.reduce((total, line) => total + line.quantity, 0);
   const subtotal = cart.reduce((total, line) => total + Number(line.item.price) * line.quantity, 0);
@@ -172,8 +174,10 @@ const OrderTakingScreen = () => {
       <View className="flex-1">
         <FlatList
           contentContainerClassName="px-4 pb-40 pt-4"
-          data={visibleItems}
+          data={lazyVisibleItems}
           keyExtractor={(item) => item.id}
+          initialNumToRender={10}
+          maxToRenderPerBatch={8}
           ListHeaderComponent={
             <View className="mb-4 gap-3">
               {error ? (
@@ -223,7 +227,12 @@ const OrderTakingScreen = () => {
             </View>
           }
           renderItem={renderMenuItem}
+          ListFooterComponent={hasMore ? <Loading label="Loading more menu items..." /> : undefined}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.6}
+          removeClippedSubviews
           showsVerticalScrollIndicator={false}
+          windowSize={7}
         />
         <View
           className="absolute bottom-0 left-0 right-0 border-t border-monochromatic-9 bg-white px-4 pt-3 dark:border-monochromatic-2 dark:bg-monochromatic-1"

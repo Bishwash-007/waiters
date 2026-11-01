@@ -3,6 +3,7 @@ import { IconRenderer } from "@/components/icon";
 import { iconMap } from "@/constants/icons";
 import { useAuthStore } from "@/stores/auth-store";
 import { useBranchStore, useOrderStore } from "@/stores/data-stores";
+import { useLazyList } from "@/hooks/use-lazy-list";
 import type { Order, OrderStatus } from "@/types/api";
 import { router, useFocusEffect } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
@@ -24,24 +25,30 @@ const OrderListScreen = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
 
-  const loadOrders = useCallback(async () => {
-    clearError();
-    try {
-      let selectedBranchId = branchId;
-      if (!selectedBranchId) {
-        const currentBranches = branches.length
-          ? branches
-          : await fetchBranches().then(() => useBranchStore.getState().branches);
-        selectedBranchId = user?.branchId ?? currentBranches[0]?.id ?? null;
-        setBranchId(selectedBranchId);
+  const loadOrders = useCallback(
+    async (force = false) => {
+      clearError();
+      try {
+        let selectedBranchId = branchId;
+        if (!selectedBranchId) {
+          const currentBranches = branches.length
+            ? branches
+            : await fetchBranches().then(() => useBranchStore.getState().branches);
+          selectedBranchId = user?.branchId ?? currentBranches[0]?.id ?? null;
+          setBranchId(selectedBranchId);
+        }
+        if (selectedBranchId) {
+          await Promise.all([
+            fetchActiveDetails(selectedBranchId, { force }),
+            fetchTables(selectedBranchId, { force }),
+          ]);
+        }
+      } catch (requestError) {
+        console.error("Failed to load active orders.", requestError);
       }
-      if (selectedBranchId) {
-        await Promise.all([fetchActiveDetails(selectedBranchId), fetchTables(selectedBranchId)]);
-      }
-    } catch (requestError) {
-      console.error("Failed to load active orders.", requestError);
-    }
-  }, [branchId, branches, clearError, fetchActiveDetails, fetchBranches, fetchTables, user]);
+    },
+    [branchId, branches, clearError, fetchActiveDetails, fetchBranches, fetchTables, user],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -64,6 +71,7 @@ const OrderListScreen = () => {
       })
       .sort((left, right) => getTimestamp(right) - getTimestamp(left));
   }, [activeOrders, search, statusFilter, tables]);
+  const { visibleItems, hasMore, loadMore } = useLazyList(filteredOrders);
 
   const renderOrder = useCallback(({ item }: { item: Order }) => renderOrderItem(item, tables), [tables]);
 
@@ -93,15 +101,18 @@ const OrderListScreen = () => {
     return (
       <FlatList
         contentContainerClassName="px-4 pb-8 pt-4"
-        data={filteredOrders}
+        data={visibleItems}
         keyExtractor={(item) => item.id}
         initialNumToRender={8}
         maxToRenderPerBatch={6}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.6}
         removeClippedSubviews
         renderItem={renderOrder}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => void loadOrders()} />}
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => void loadOrders(true)} />}
         updateCellsBatchingPeriod={50}
         windowSize={7}
+        ListFooterComponent={hasMore ? <Loading label="Loading more orders..." /> : undefined}
         showsVerticalScrollIndicator={false}
       />
     );

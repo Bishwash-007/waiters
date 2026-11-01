@@ -1,10 +1,10 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { ActivityIndicator, Pressable, Text } from "react-native";
 import { IconRenderer } from "../icon";
 import { iconMap, type IconName } from "@/constants/icons";
 
 type ButtonProps = Omit<ComponentProps<typeof Pressable>, "children"> & {
-  children: string;
+  children: ReactNode;
   variant?: "fill" | "outline" | "none";
   size?: "large" | "medium" | "small";
   loading?: boolean;
@@ -40,6 +40,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={typeof children === "string" ? children : undefined}
       accessibilityState={{ busy: loading, disabled: isDisabled }}
       className={`flex-row items-center justify-center gap-2 rounded-component ${sizeClasses[size]} ${variantClasses} ${isDisabled ? "opacity-50" : ""} ${className}`}
       disabled={isDisabled}

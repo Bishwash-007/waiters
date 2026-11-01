@@ -27,7 +27,11 @@ export function Header({ title, subtitle, leftIcon, rightIcon, onRightPress, onB
         ) : null}
         {leftIcon ? <IconRenderer icon={iconMap[leftIcon]} size={22} /> : null}
         <View className="min-w-0 flex-1">
-          <Text className="font-gothic text-heading-6 text-font-dark dark:text-white" numberOfLines={1}>
+          <Text
+            accessibilityRole="header"
+            className="font-gothic text-heading-6 text-font-dark dark:text-white"
+            numberOfLines={1}
+          >
             {title}
           </Text>
           {subtitle ? (

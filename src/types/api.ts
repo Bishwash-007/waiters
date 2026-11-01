@@ -4,6 +4,24 @@ export type UserRole =
 export type OrderStatus =
   "placed" | "confirmed" | "preparing" | "ready" | "served" | "awaiting_payment" | "paid" | "completed" | "cancelled";
 
+export interface AuthTenant {
+  name: string;
+  slug: string;
+  status: string;
+}
+
+export interface AuthBranch {
+  id: string;
+  name: string;
+  address?: string | null;
+}
+
+export interface AuthSubscription {
+  status: string;
+  startsAt?: string | null;
+  endsAt?: string | null;
+}
+
 export interface AuthUser {
   userId: string;
   tenantId: string;
@@ -11,6 +29,10 @@ export interface AuthUser {
   role: UserRole;
   email: string;
   fullName: string;
+  isActive?: boolean;
+  tenant?: AuthTenant | null;
+  branch?: AuthBranch | null;
+  subscription?: AuthSubscription | null;
 }
 
 export interface AuthSession {
@@ -138,12 +160,31 @@ export interface CheckoutResult {
   payment: Payment;
   qr: {
     provider: string;
-    orderId: string;
+    orderId?: string;
+    billId?: string;
     amount: number;
     format: string;
     data: string;
     expiresAt: string | null;
   };
+}
+
+export interface BillOrder {
+  orderId: string;
+  status: OrderStatus;
+  totalAmount: number | string;
+}
+
+export interface Bill {
+  billId: string;
+  branchId: string;
+  tableId: string;
+  status: string;
+  orders: BillOrder[];
+  subtotal: number | string;
+  taxAmount: number | string;
+  discountAmount: number | string;
+  totalAmount: number | string;
 }
 
 export interface ApiErrorResponse {

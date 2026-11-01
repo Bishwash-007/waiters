@@ -84,6 +84,12 @@
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-web-to-native/SKILL.md",
       "computedHash": "25c8af32c6b46f26b0948509b80f7d47fe8d1a4505033b5b4ec6f25c574cbc20"
+    },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "7422ce60d42391bb68b0370c171cd5a75cfa3ea155644f9665b95738854030ef"
     }
   }
 }

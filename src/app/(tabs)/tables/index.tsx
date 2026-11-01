@@ -2,7 +2,8 @@ import { EmptyState, Header, Loading, SearchInput } from "@/components/ui";
 import { IconRenderer } from "@/components/icon";
 import { iconMap } from "@/constants/icons";
 import { useAuthStore } from "@/stores/auth-store";
-import { useBranchStore, useOrderStore } from "@/stores/data-stores";
+import { useBranchStore } from "@/stores/data-stores";
+import { useLazyList } from "@/hooks/use-lazy-list";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, Text, View } from "react-native";
@@ -18,29 +19,30 @@ const TableScreen = () => {
   const fetchBranches = useBranchStore((state) => state.fetchBranches);
   const fetchTables = useBranchStore((state) => state.fetchTables);
   const clearError = useBranchStore((state) => state.clearError);
-  const activeOrders = useOrderStore((state) => state.activeOrders);
-  const fetchActiveOrders = useOrderStore((state) => state.fetchActive);
   const [branchId, setBranchId] = useState<string | null>(user?.branchId ?? null);
   const [search, setSearch] = useState("");
 
-  const loadTables = useCallback(async () => {
-    clearError();
-    try {
-      let selectedBranchId = branchId;
-      if (!selectedBranchId) {
-        const currentBranches = branches.length
-          ? branches
-          : await fetchBranches().then(() => useBranchStore.getState().branches);
-        selectedBranchId = user?.branchId ?? currentBranches[0]?.id ?? null;
-        setBranchId(selectedBranchId);
+  const loadTables = useCallback(
+    async (force = false) => {
+      clearError();
+      try {
+        let selectedBranchId = branchId;
+        if (!selectedBranchId) {
+          const currentBranches = branches.length
+            ? branches
+            : await fetchBranches().then(() => useBranchStore.getState().branches);
+          selectedBranchId = user?.branchId ?? currentBranches[0]?.id ?? null;
+          setBranchId(selectedBranchId);
+        }
+        if (selectedBranchId) {
+          await fetchTables(selectedBranchId, { force });
+        }
+      } catch (error) {
+        console.error("Failed to load tables.", error);
       }
-      if (selectedBranchId) {
-        await Promise.all([fetchTables(selectedBranchId), fetchActiveOrders(selectedBranchId)]);
-      }
-    } catch (error) {
-      console.error("Failed to load tables.", error);
-    }
-  }, [branchId, branches, clearError, fetchActiveOrders, fetchBranches, fetchTables, user]);
+    },
+    [branchId, branches, clearError, fetchBranches, fetchTables, user],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -53,31 +55,13 @@ const TableScreen = () => {
     if (!query) return tables;
     return tables.filter((table) => table.label.toLowerCase().includes(query));
   }, [search, tables]);
+  const { visibleItems, hasMore, loadMore } = useLazyList(filteredTables);
 
   const openTable = (table: RestaurantTable) => {
-    const status = getTableStatus(table);
-    if (status.isAvailable) {
-      router.push({
-        pathname: "/(screens)/ordertaking/[tableId]",
-        params: { tableId: table.id, tableLabel: table.label },
-      });
-      return;
-    }
-
-    const activeOrder = activeOrders
-      .filter((order) => order.tableId === table.id || order.table_id === table.id)
-      .sort((left, right) => getOrderTimestamp(right) - getOrderTimestamp(left))[0];
-    const tableOrderId = getTableOrderId(table);
-    const orderId = activeOrder?.id ?? tableOrderId;
-    if (orderId) {
-      router.push({
-        pathname: "/(screens)/orderdetails/[id]",
-        params: { id: orderId },
-      });
-      return;
-    }
-
-    console.error(`No active order found for ${table.label} with status ${status.label}.`);
+    router.push({
+      pathname: "/tableorders/[tableId]",
+      params: { tableId: table.id, tableLabel: table.label },
+    });
   };
 
   const renderTable = ({ item }: { item: RestaurantTable }) => {
@@ -129,13 +113,20 @@ const TableScreen = () => {
     return (
       <FlatList
         contentContainerClassName="px-4 pb-8 pt-4"
-        data={filteredTables}
+        data={visibleItems}
         keyExtractor={(item) => item.id}
+        initialNumToRender={8}
+        maxToRenderPerBatch={6}
         numColumns={2}
         columnWrapperClassName="justify-between"
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.6}
+        removeClippedSubviews
         renderItem={renderTable}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => void loadTables()} />}
+        ListFooterComponent={hasMore ? <Loading label="Loading more tables..." /> : undefined}
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => void loadTables(true)} />}
         showsVerticalScrollIndicator={false}
+        windowSize={7}
       />
     );
   };
@@ -193,17 +184,6 @@ function getTableStatus(table: RestaurantTable) {
     containerClass: "bg-monochromatic-9",
     textClass: "text-font-dark",
   };
-}
-
-function getTableOrderId(table: RestaurantTable) {
-  const orderId = table.activeOrderId ?? table.active_order_id ?? table.orderId ?? table.order_id;
-  return typeof orderId === "string" && orderId.length > 0 ? orderId : null;
-}
-
-function getOrderTimestamp(order: { createdAt?: string; created_at?: string }) {
-  const value = order.createdAt ?? order.created_at;
-  const timestamp = value ? Date.parse(value) : 0;
-  return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 export default TableScreen;

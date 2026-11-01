@@ -7,7 +7,11 @@ import { FlatList, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const OrderDetailsScreen = () => {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tableId, tableLabel } = useLocalSearchParams<{
+    id: string;
+    tableId?: string;
+    tableLabel?: string;
+  }>();
   const order = useOrderStore((state) => state.selectedOrder);
   const tables = useBranchStore((state) => state.tables);
   const fetchTables = useBranchStore((state) => state.fetchTables);
@@ -36,7 +40,6 @@ const OrderDetailsScreen = () => {
   );
 
   const nextStatus = order ? getNextStatus(order.status) : null;
-  const canCheckout = order?.status === "served" || order?.status === "awaiting_payment";
   const items = useMemo(() => (order ? normalizeOrderItems(order) : []), [order]);
   const renderItem = useCallback(({ item }: { item: OrderLine }) => <OrderDetailLine item={item} />, []);
 
@@ -49,10 +52,21 @@ const OrderDetailsScreen = () => {
     }
   };
 
+  const handleBack = () => {
+    if (tableId) {
+      router.replace({
+        pathname: "/tableorders/[tableId]",
+        params: { tableId, ...(tableLabel ? { tableLabel } : {}) },
+      });
+      return;
+    }
+    if (router.canGoBack()) router.back();
+  };
+
   if (isLoading && !order) {
     return (
       <SafeAreaView className="flex-1 bg-white dark:bg-monochromatic-1" edges={["top", "bottom"]}>
-        <Header title="Order details" onBack={() => router.back()} />
+        <Header title="Order details" onBack={handleBack} />
         <Loading label="Loading order..." />
       </SafeAreaView>
     );
@@ -61,9 +75,9 @@ const OrderDetailsScreen = () => {
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-monochromatic-1" edges={["top", "bottom"]}>
       <Header
-        title={order ? `Order #${order.id.slice(0, 8)}` : "Order details"}
+        title={order ? `Order #${formatOrderId(order.id)}` : "Order details"}
         subtitle={order ? getTableLabel(order, tables) : "Review order information"}
-        onBack={() => router.back()}
+        onBack={handleBack}
       />
       {error && !order ? (
         <View className="p-4">
@@ -81,6 +95,8 @@ const OrderDetailsScreen = () => {
             contentContainerClassName="gap-4 px-4 pb-8 pt-4"
             data={items}
             keyExtractor={(item, index) => `${item.id}-${index}`}
+            initialNumToRender={8}
+            maxToRenderPerBatch={6}
             ListHeaderComponent={
               <View className="gap-4">
                 {error ? <Alert message={error} variant="error" onDismiss={clearError} /> : null}
@@ -138,6 +154,8 @@ const OrderDetailsScreen = () => {
               </Text>
             }
             renderItem={renderItem}
+            removeClippedSubviews
+            windowSize={7}
           />
           <View className="gap-3 border-t border-monochromatic-9 bg-white px-4 pb-4 pt-3 dark:border-monochromatic-2 dark:bg-monochromatic-1">
             {nextStatus ? (
@@ -145,32 +163,6 @@ const OrderDetailsScreen = () => {
                 loading={isLoading}
                 onPress={() => void changeStatus()}
               >{`Mark ${formatStatus(nextStatus)}`}</Button>
-            ) : null}
-            {order.status !== "completed" && order.status !== "cancelled" ? (
-              <Button
-                variant="outline"
-                onPress={() =>
-                  router.push({
-                    pathname: "/(screens)/ordertaking/[tableId]",
-                    params: {
-                      tableId: order.tableId ?? order.table_id ?? "",
-                      tableLabel: getValue(order, "tableLabel", "table_label") ?? "",
-                    },
-                  })
-                }
-              >
-                Add items / New order
-              </Button>
-            ) : null}
-            {canCheckout ? (
-              <Button
-                variant={nextStatus ? "outline" : "fill"}
-                onPress={() =>
-                  router.push({ pathname: "/(screens)/orderdetails/summary/[id]", params: { id: order.id } })
-                }
-              >
-                Review total and checkout
-              </Button>
             ) : null}
           </View>
         </View>
@@ -278,6 +270,10 @@ function statusStyle(status: OrderStatus) {
 
 function formatAmount(value: number | string) {
   return `Rs. ${Number(value).toFixed(2)}`;
+}
+
+function formatOrderId(orderId: string) {
+  return orderId.length > 8 ? `${orderId.slice(0, 8)}…` : orderId;
 }
 
 export default OrderDetailsScreen;

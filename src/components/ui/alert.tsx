@@ -23,9 +23,17 @@ export function Alert({ title, message, variant = "neutral", actionLabel, onActi
     <View className={`flex-row gap-3 rounded-component border p-4 ${styles[variant]}`}>
       <View className="min-w-0 flex-1 gap-1">
         {title ? <Text className="font-gothic font-semibold text-font-dark dark:text-white">{title}</Text> : null}
-        <Text className="font-gothic text-sm text-font-dark dark:text-white">{message}</Text>
+        <Text className="font-gothic text-sm text-font-dark dark:text-white" selectable>
+          {message}
+        </Text>
         {actionLabel ? (
-          <Pressable className="pt-2" onPress={onAction}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={actionLabel}
+            className="self-start pt-2 active:opacity-60"
+            disabled={!onAction}
+            onPress={onAction}
+          >
             <Text className="font-gothic text-sm font-semibold text-font-dark underline dark:text-white">
               {actionLabel}
             </Text>
@@ -33,7 +41,12 @@ export function Alert({ title, message, variant = "neutral", actionLabel, onActi
         ) : null}
       </View>
       {onDismiss ? (
-        <Pressable accessibilityLabel="Dismiss alert" onPress={onDismiss}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss alert"
+          className="active:opacity-60"
+          onPress={onDismiss}
+        >
           <IconRenderer icon={iconMap.close} size={20} />
         </Pressable>
       ) : null}

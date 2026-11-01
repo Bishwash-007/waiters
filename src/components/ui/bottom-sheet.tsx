@@ -11,7 +11,10 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
           className="gap-4 rounded-t-card bg-white px-5 pb-8 pt-4 dark:bg-monochromatic-1"
           onPress={(event) => event.stopPropagation()}
         >
-          <View className="h-1 w-12 self-center rounded-full bg-monochromatic-8" />
+          <View
+            accessibilityLabel="Swipe down to close"
+            className="h-1 w-12 self-center rounded-full bg-monochromatic-8"
+          />
           {title ? <Text className="font-gothic text-heading-6 text-font-dark dark:text-white">{title}</Text> : null}
           {children}
         </Pressable>

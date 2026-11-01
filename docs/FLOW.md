@@ -53,7 +53,24 @@ curl -sS -X POST "$BASE_URL/auth/login" \
     "email": "waiter@testcafe.test",
     "role": "waiter",
     "tenantId": "...",
-    "branchId": "..."
+    "branchId": "...",
+    "fullName": "...",
+    "isActive": true,
+    "tenant": {
+      "name": "Test Cafe",
+      "slug": "test-cafe",
+      "status": "active"
+    },
+    "branch": {
+      "id": "...",
+      "name": "Main Branch",
+      "address": "..."
+    },
+    "subscription": {
+      "status": "active",
+      "startsAt": "...",
+      "endsAt": "..."
+    }
   }
 }
 ```
@@ -68,6 +85,25 @@ curl -sS -X GET "$BASE_URL/auth/me" \
   -H "X-Tenant-Id: $TENANT" \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
+
+**Response:**
+
+```json
+{
+  "userId": "...",
+  "tenantId": "...",
+  "branchId": "...",
+  "role": "waiter",
+  "email": "waiter@testcafe.test",
+  "fullName": "...",
+  "isActive": true,
+  "tenant": { "name": "Test Cafe", "slug": "test-cafe", "status": "active" },
+  "branch": { "id": "...", "name": "Main Branch", "address": "..." },
+  "subscription": { "status": "active", "startsAt": "...", "endsAt": "..." }
+}
+```
+
+The API may fall back to JWT claims if the user lookup fails, so the nested `tenant`, `branch`, and `subscription` objects can be absent.
 
 ### 3. Token Refresh
 
@@ -329,14 +365,38 @@ curl -sS -X POST "$BASE_URL/orders" \
 - KDS will show both orders for that table
 - Multiple open orders can exist for the same table
 - The waiter order-details screen shows only the items for the selected order
-- **Checkout is per-order** - Each order must be checked out separately via `POST /orders/:id/checkout`
-- There is currently **no "merge orders" or "combined bill"** functionality
+- **Table checkout combines open orders** - Prepare a bill with `POST /bills/prepare`
+  using the branch and table IDs, then checkout it with
+  `POST /payments/bills/:id/checkout`
+- The waiter app exposes combined table checkout as the checkout flow. The
+  backend per-order endpoint remains available for other clients if needed.
 
 ---
 
 ## Checkout & Payment
 
-### 1. Start Checkout
+### 1. Combined Table Checkout
+
+The waiter can prepare all open orders for a table into one pending bill. The
+bill response contains the linked order IDs and combined subtotal, tax,
+discount, and total. Checkout returns one payment and QR/hosted payment link;
+successful payment settlement closes all linked orders.
+
+```bash
+curl -sS -X POST "$BASE_URL/bills/prepare" \
+  -H "X-Tenant-Id: $TENANT" \
+  -H "Authorization: ******" \
+  -H 'Content-Type: application/json' \
+  -d '{"branchId":"<branchId>","tableId":"<tableId>"}'
+```
+
+```bash
+curl -sS -X POST "$BASE_URL/payments/bills/<billId>/checkout" \
+  -H "X-Tenant-Id: $TENANT" \
+  -H "Authorization: ******"
+```
+
+### 2. Start Individual Order Checkout
 
 **Endpoint:** `POST /orders/:id/checkout`  
 **Auth:** Bearer token  
@@ -349,7 +409,22 @@ curl -sS -X POST "$BASE_URL/orders/<orderId>/checkout" \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
-**Response:**
+**Response:** Returns the enriched profile used by the Profile tab. If the user lookup fails, the API falls back to JWT claims and may omit the nested tenant, branch, and subscription objects.
+
+```json
+{
+  "userId": "...",
+  "tenantId": "...",
+  "branchId": "...",
+  "role": "waiter",
+  "email": "waiter@testcafe.test",
+  "fullName": "...",
+  "isActive": true,
+  "tenant": { "name": "Test Cafe", "slug": "test-cafe", "status": "active" },
+  "branch": { "id": "...", "name": "Main Branch", "address": "..." },
+  "subscription": { "status": "active", "startsAt": "...", "endsAt": "..." }
+}
+```
 
 ```json
 {
